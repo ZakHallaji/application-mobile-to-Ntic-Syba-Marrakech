@@ -1,0 +1,86 @@
+<composable name='greeting' padding='12' shape>
+    <CHILDREN>
+        <composable>
+
+        </composable>
+    </CHILDREN>
+</composable>
+
+login -> authController ->
+
+package ma.aouthmani
+import okhttp3.*
+import okhttp3.MediaType.Companion.toMediaTypeOrNull
+import okhttp3.RequestBody.Companion.toRequestBody
+import org.json.JSONArray
+import org.json.JSONObject
+import java.io.IOException
+
+
+fun main() {
+    fetchSeances("ID107","S2S26")
+}
+
+
+fun fetchSeances(grp: String, periode: String) {
+    val client = OkHttpClient()
+
+    val json = """
+        {
+            "user": "$grp",
+            "pass": "$grp",
+            "groupe": "$grp",
+            "periode": "$periode"
+        }
+    """.trimIndent()
+
+    val request = Request.Builder()
+        .url("http://eplanner-syba.somee.com/Service1.asmx/ListeSeancesGrp")
+        .post(json.toRequestBody("application/json; charset=utf-8".toMediaTypeOrNull()))
+        .build()
+
+    client.newCall(request).enqueue(object : Callback {
+        override fun onFailure(call: Call, e: IOException) {
+            e.printStackTrace()
+        }
+
+        override fun onResponse(call: Call, response: Response) {
+            response.body?.let {
+                val jsonResponse = it.string()
+                println("Response: ${parseResponse(jsonResponse)}")
+            }
+            response.headers.let{
+                val a = it.toString()
+                println(a)
+
+            }
+        }
+    })
+}
+
+
+fun parseResponse(jsonString: String) {
+    val jsonObject = JSONObject(jsonString)  // Convert response to JSONObject
+    val dataArray = JSONArray(jsonObject.getString("d"))  // Extract and parse "d"
+
+    for (i in 0 until dataArray.length()) {
+        val seance = dataArray.getJSONObject(i)
+
+        val codeSeance = seance.getInt("CodeSeance")
+        val nomMode = seance.getString("Nom_mode")
+
+        val numSalle = seance.optString("NumSalle", "N/A")
+        val formateur = seance.getString("Formateur")
+
+        val intitule = seance.getString("Intitule")
+        val detailModule = seance.getString("Detail_module")
+
+        val jour = seance.getString("Jour")
+        val heureDebut = seance.getString("Heure_debut")
+
+        val heureFin = seance.getString("Heure_fin")
+
+        println("$codeSeance [$jour] $heureDebut - $heureFin | $intitule ($nomMode) - $formateur | Salle: $numSalle | $detailModule")
+    }
+}
+
